@@ -70,9 +70,10 @@ nav.pagination-container {
 }
 
 #edit-form-container {
-  display: none;
-  margin-top: 16px;
+  /* Remove display: none */
   padding: 16px;
+  margin: 0;  /* Reset margin */
+  border-top: 1px solid #eee;
 }
 
 .form-row {
