@@ -1,0 +1,90 @@
+body {
+  min-width: 600px;
+  margin: 0;
+  padding: 16px;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+header h1 {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.song-card {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 1.5rem;
+  /* padding: 1rem; */
+  padding: 32px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.song-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.song-title {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0
+}
+
+.song-subtext {
+  font-size: 0.9rem;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-time-range {
+  text-align: right;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.song-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+nav.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+#edit-form-container {
+  display: none;
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.form-row {
+  margin-bottom: 8px;
+}
+
+.form-row label {
+  display: inline-block;
+  width: 100px;
+}
+
+.button-row {
+  margin-top: 16px;
+  text-align: right;
+}

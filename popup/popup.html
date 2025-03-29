@@ -4,17 +4,74 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>YouTube Music Time Tracker</title>
-    <script src="popup.js"></script>
-    <style>
-      body {
-        min-width: 600px;
-        margin: 0;
-        padding: 0;
-        font-family: Arial, sans-serif;
-      }
-    </style>
+    <link rel="stylesheet" href="popup.css">
+    <script src="popup.js" type="module"></script>
   </head>
   <body>
-    <div id="app"></div>
+    <template id="song-item-template">
+      <article class="song-card">
+        <div class="song-info">
+          <h3 class="song-title"></h3>
+          <p class="song-subtext"></p>
+        </div>
+        <time class="song-time-range"></time>
+        <div class="song-actions" role="group" aria-label="Song actions">
+          <button class="edit-btn">Edit</button>
+          <button class="delete-btn">Delete</button>
+        </div>
+      </article>
+    </template>
+    
+
+    <header>
+      <h1>YouTube Music Time Tracker</h1>
+      <search>
+        <label for="search-input">Search:</label>
+        <input type="search" id="search-input" placeholder="Filter by title or artist">
+      </search>
+    </header>
+    
+    <div id="error-message" class="error-message"></div>
+    
+    <div id="songs-container"></div>
+    
+    <nav class="pagination-container">
+      <button id="prev-page" >Previous</button>
+      <span id="page-info">Page 1 of 1</span>
+      <button id="next-page">Next</button>
+    </nav>
+    
+    
+    <div id="edit-form-container">
+      <h2>Edit Song</h2>
+      <form id="edit-form">
+        <input type="hidden" id="edit-song-id">
+        
+        <div class="form-row">
+          <label for="edit-title">Title:</label>
+          <input type="text" id="edit-title" disabled>
+        </div>
+        
+        <div class="form-row">
+          <label for="edit-subtext">Artist/Album:</label>
+          <input type="text" id="edit-subtext">
+        </div>
+        
+        <div class="form-row">
+          <label for="edit-start-time">Start Time:</label>
+          <input type="number" id="edit-start-time" step="0.1" min="0" placeholder="Leave empty for beginning">
+        </div>
+        
+        <div class="form-row">
+          <label for="edit-end-time">End Time:</label>
+          <input type="number" id="edit-end-time" step="0.1" min="0" placeholder="Leave empty for full song">
+        </div>
+        
+        <div class="button-row">
+          <button type="button" id="cancel-edit">Cancel</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+    </div>
   </body>
 </html>
