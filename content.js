@@ -1,3 +1,8 @@
+/** @typedef {import('./types').Song} Song */
+/** @typedef {import('./types').CurrentlyPlaying} CurrentlyPlaying */
+/** @typedef {import('./types').StorageData} StorageData */
+
+
 const MUSIC_PLAYER_NODE_SELECTOR = "ytmusic-player-bar";
 const SONG_ID_NODE_SELECTOR = "a.ytp-title-link";
 const SONG_DETAILS_PARENT_NODE = "div.middle-controls";
@@ -8,14 +13,6 @@ const SAVED_SONGS_DB_KEY = "songs";
 
 /** @type {Map<string, {startTime: number, endTime: number|null}>} */
 const SAVED_SONGS = new Map();
-
-/**
- * @typedef {Object} CurrentlyPlaying
- * @property {string|null} id
- * @property {string|null} title
- * @property {string|null} subtext
- * @property {() => void} reset
- */
 
 /** @type {CurrentlyPlaying} */
 const CURRENTLY_PLAYING = {
@@ -189,13 +186,7 @@ function start() {
   
   chrome.storage.local.get(SAVED_SONGS_DB_KEY).then(
     /**
-     * @param {{
-     *   songs: Array<{
-     *     id: string,
-     *     startTime: number|null,
-     *     endTime: number|null
-     *   }>
-     * }} data
+     * @param {StorageData} data
      */
     function loadSavedSongs(data) {
       console.log(data)

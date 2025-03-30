@@ -23,8 +23,7 @@ header h1 {
   grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 1.5rem;
-  /* padding: 1rem; */
-  padding: 32px 0;
+  padding: 0.5rem 0;
   border-bottom: 1px solid #eee;
 }
 
@@ -69,10 +68,9 @@ nav.pagination-container {
   margin-top: 16px;
 }
 
-#edit-form-container {
-  /* Remove display: none */
+.edit-form-container {
   padding: 16px;
-  margin: 0;  /* Reset margin */
+  margin: 0;
   border-top: 1px solid #eee;
 }
 
