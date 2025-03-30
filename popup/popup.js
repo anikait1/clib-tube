@@ -107,17 +107,18 @@ function setupEventListeners() {
     }
   });
 
-  const searchInput = document.getElementById("search-input");
-  searchInput.addEventListener("input", () => {
-    const searchTerm = searchInput.value.toLowerCase();
-    const filteredSongs = SAVED_SONGS.filter((song) => {
-      return (
-        song.title?.toLowerCase().includes(searchTerm) ||
-        song.subtext?.toLowerCase().includes(searchTerm)
-      );
+  document
+    .getElementById("search-input")
+    .addEventListener("input", function filterSongs() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const filteredSongs = SAVED_SONGS.filter((song) => {
+        return (
+          song.title?.toLowerCase().includes(searchTerm) ||
+          song.subtext?.toLowerCase().includes(searchTerm)
+        );
+      });
+      renderSongs(filteredSongs);
     });
-    renderSongs(filteredSongs);
-  });
 }
 
 /**
