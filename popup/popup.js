@@ -10,18 +10,30 @@ const EDIT_FORM_TEMPLATE_NODE_IDENTIFIER = "edit-form-template";
 const SAVED_SONGS = [];
 
 class SongItem extends HTMLElement {
-  // static get observedAttributes() {
-  //   return ['title', 'subtext', 'start-time', 'end-time', 'song-id'];
-  // }
+  static get observedAttributes() {
+    return ["title", "subtext", "start-time", "end-time", "song-id"];
+  }
 
   constructor() {
     super();
   }
 
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (!this.rendered) return;
+    if (oldValue === newValue) return;
+
+    this.renderAttributes();
+  }
+
   connectedCallback() {
     const template = document.getElementById("song-item-template");
     this.appendChild(template.content.cloneNode(true));
+    this.rendered = true;
 
+    this.renderAttributes();
+  }
+
+  renderAttributes() {
     this.querySelector(".song-title").textContent =
       this.getAttribute("title") || "Unknown Title";
     this.querySelector(".song-subtext").textContent =
@@ -156,22 +168,29 @@ function handleEditSongEvent(song, songItemElement) {
 
   editSongSectionNode
     .querySelector(".edit-form")
-    .addEventListener("submit", async (event) => {
+    .addEventListener("submit", function handleEditSongFormSubmission(event) {
       event.preventDefault();
       const form = event.target;
       const startTime = form.querySelector("#edit-start-time").value;
       const endTime = form.querySelector("#edit-end-time").value;
       const subtext = form.querySelector("#edit-subtext").value;
 
-      /** TODO - Check how the update will flow to the Storage and UI */
-      // await updateSong(
-      //   song.id,
-      //   {
-      //     subtext,
-      //     startTime: startTime ? parseFloat(startTime) : null,
-      //     endTime: endTime ? parseFloat(endTime) : null,
-      //   },
-      // );
+      song.startTime = startTime ? parseFloat(startTime) : null;
+      song.endTime = endTime ? parseFloat(endTime) : null;
+      song.subtext = subtext;
+
+      songItemElement.setAttribute("start-time", formatTime(song.startTime));
+      songItemElement.setAttribute("end-time", formatTime(song.endTime));
+      songItemElement.setAttribute("subtext", song.subtext);
+
+      chrome.storage.local
+        .set({ [SAVED_SONGS_DB_KEY]: SAVED_SONGS })
+        .then(() => {
+          console.log("songs saved in storage");
+        })
+        .catch((error) => {
+          console.error("Error saving songs:", error);
+        });
 
       editSongSectionNode.remove();
     });
@@ -185,41 +204,29 @@ function handleEditSongEvent(song, songItemElement) {
   songItemElement.insertAdjacentElement("afterend", editSongSectionNode);
 }
 
-function handleDeleteSong(song) {
-  if (confirm("Are you sure you want to delete this song?")) {
-    /** TODO - Check how the delete will flow to the Storage and UI */
-    // await deleteSong(song.id);
-  }
+function handleDeleteSong(deletedSong) {
+  const deleteConfirmation = confirm(
+    "Are you sure you want to delete this song?"
+  );
+  if (!deleteConfirmation) return;
+
+  const index = SAVED_SONGS.findIndex((song) => song.id === deletedSong.id);
+  if (index === -1) return;
+
+  SAVED_SONGS.splice(index, 1);
+  renderSongs();
+
+  chrome.storage.local
+    .set({ [SAVED_SONGS_DB_KEY]: SAVED_SONGS })
+    .then(() => {
+      console.log("songs saved in storage");
+    })
+    .catch((error) => {
+      console.error("Error saving songs:", error);
+    });
 }
 
-async function updateSong(songId, updates, songs) {
-  const index = songs.findIndex((song) => song.id === songId);
-  if (index !== -1) {
-    songs[index] = { ...songs[index], ...updates };
-    await saveSongs(songs);
-    renderSongs(songs);
-  }
-}
-
-async function deleteSong(songId, songs) {
-  const updatedSongs = songs.filter((song) => song.id !== songId);
-  await saveSongs(updatedSongs);
-  renderSongs(updatedSongs);
-}
-
-async function saveSongs(songs) {
-  try {
-    await chrome.storage.local.set({ [SAVED_SONGS_DB_KEY]: songs });
-    return songs;
-  } catch (error) {
-    console.error("Error saving songs:", error);
-    document.getElementById("error-message").textContent =
-      "Failed to save changes. Please try again.";
-    return null;
-  }
-}
-
-// Helper function to format time in MM:SS format
+/** @param {number|null} seconds */
 function formatTime(seconds) {
   if (!seconds || isNaN(seconds)) return "Not set";
 
