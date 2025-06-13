@@ -2,7 +2,6 @@
 /** @typedef {import('./types').CurrentlyPlaying} CurrentlyPlaying */
 /** @typedef {import('./types').StorageData} StorageData */
 
-
 const MUSIC_PLAYER_NODE_SELECTOR = "ytmusic-player-bar";
 const SONG_ID_NODE_SELECTOR = "a.ytp-title-link";
 const SONG_DETAILS_PARENT_NODE = "div.middle-controls";
@@ -57,7 +56,7 @@ function updateCurrentlyPlaying(songDetailsNode, songLinkNode) {
   CURRENTLY_PLAYING.title = title;
   CURRENTLY_PLAYING.subtext = subtext;
 
-  console.log(CURRENTLY_PLAYING)
+  console.log(CURRENTLY_PLAYING);
 
   return true;
 }
@@ -183,13 +182,13 @@ function start() {
       subtree: true,
     }
   );
-  
+
   chrome.storage.local.get(SAVED_SONGS_DB_KEY).then(
     /**
      * @param {StorageData} data
      */
     function loadSavedSongs(data) {
-      console.log(data)
+      console.log(data);
       for (const song of data.songs) {
         SAVED_SONGS.set(song.id, {
           startTime: song.startTime,
@@ -200,4 +199,4 @@ function start() {
   );
 }
 
-start()
+start();
