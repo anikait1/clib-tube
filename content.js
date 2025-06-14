@@ -2,7 +2,6 @@
 /** @typedef {import('./types').CurrentlyPlaying} CurrentlyPlaying */
 /** @typedef {import('./types').StorageData} StorageData */
 
-
 const SAVED_SONGS_DB_KEY = "songs";
 const DETECT_VIDEO_ELEMENT_TIMEOUT = 500; // ms
 const VIDEO_ELEMENT_OBSERVER_ATTRIBUTE = "src";
@@ -38,7 +37,7 @@ const CURRENTLY_PLAYING = {
       id: this.id,
       title: this.title,
     };
-  }
+  },
 };
 
 /**
@@ -147,7 +146,7 @@ function main() {
 
     let response;
     switch (requestType) {
-      case 'add-current-song': {
+      case "add-current-song": {
         if (!CURRENTLY_PLAYING.id) {
           response = {
             success: false,
@@ -163,7 +162,6 @@ function main() {
           };
           break;
         }
-
 
         try {
           SAVED_SONGS.set(CURRENTLY_PLAYING.id, {
@@ -191,12 +189,16 @@ function main() {
       }
     }
 
-    chrome.storage.local.set({
-      [SAVED_SONGS_DB_KEY]: Array.from(SAVED_SONGS.entries()).map(([id, data]) => ({
-        id,
-        ...data,
-      })),
-    }).then(() => sendResponse(response));
+    chrome.storage.local
+      .set({
+        [SAVED_SONGS_DB_KEY]: Array.from(SAVED_SONGS.entries()).map(
+          ([id, data]) => ({
+            id,
+            ...data,
+          })
+        ),
+      })
+      .then(() => sendResponse(response));
     return true;
   });
 

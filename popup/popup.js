@@ -2,7 +2,6 @@
 /** @typedef {import('../types').CurrentlyPlaying} CurrentlyPlaying */
 /** @typedef {import('../types').StorageData} StorageData */
 
-
 const SAVED_SONGS_DB_KEY = "songs";
 const SONGS_CONTAINER_NODE_IDENTIFIER = "songs-container";
 const EDIT_FORM_TEMPLATE_NODE_IDENTIFIER = "edit-form-template";
@@ -132,16 +131,15 @@ function setupEventListeners() {
     .addEventListener("click", async () => {
       try {
         const [tab] = await chrome.tabs.query({
-          url: 'https://*.youtube.com/*',
+          url: "https://*.youtube.com/*",
         });
 
         if (!tab) return;
 
         // TODO - understand how constants can be shared between content-script and popup.js
         const response = await chrome.tabs.sendMessage(tab.id, {
-          type: 'add-current-song',
+          type: "add-current-song",
         });
-
 
         if (!response) {
           document.getElementById("error-message").textContent =
@@ -150,11 +148,9 @@ function setupEventListeners() {
         }
 
         if (!response.success) {
-          document.getElementById("error-message").textContent =
-            response.error;
+          document.getElementById("error-message").textContent = response.error;
           return;
         }
-
 
         /**
          * Popup only receives a successful response in case the content script was successful
