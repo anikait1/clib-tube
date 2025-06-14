@@ -11,7 +11,7 @@ const SAVED_SONGS = [];
 
 class SongItem extends HTMLElement {
   static get observedAttributes() {
-    return ["title", "subtext", "start-time", "end-time", "song-id"];
+    return ["title", "start-time", "end-time", "song-id"];
   }
 
   constructor() {
@@ -36,8 +36,6 @@ class SongItem extends HTMLElement {
   renderAttributes() {
     this.querySelector(".song-title").textContent =
       this.getAttribute("title") || "Unknown Title";
-    this.querySelector(".song-subtext").textContent =
-      this.getAttribute("subtext") || "Unknown Artist";
     this.querySelector(".song-time-range").textContent = `${
       this.getAttribute("start-time") || "Not set"
     } - ${this.getAttribute("end-time") || "Not set"}`;
@@ -53,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
       /** @param {StorageData} data */
       function loadSavedSongs(data) {
         SAVED_SONGS.length = 0;
-        SAVED_SONGS.push(...data.songs);
+        SAVED_SONGS.push(...(data.songs ?? []));
 
         renderSongs();
         setupEventListeners();
@@ -81,7 +79,6 @@ function renderSongs(songs = SAVED_SONGS) {
     const songItem = document.createElement("song-item");
     songItem.setAttribute("song-id", song.id);
     songItem.setAttribute("title", song.title || "");
-    songItem.setAttribute("subtext", song.subtext || "");
     songItem.setAttribute("start-time", formatTime(song.startTime));
     songItem.setAttribute("end-time", formatTime(song.endTime));
 
@@ -125,8 +122,7 @@ function setupEventListeners() {
       const searchTerm = searchInput.value.toLowerCase();
       const filteredSongs = SAVED_SONGS.filter((song) => {
         return (
-          song.title?.toLowerCase().includes(searchTerm) ||
-          song.subtext?.toLowerCase().includes(searchTerm)
+          song.title?.toLowerCase().includes(searchTerm)
         );
       });
       renderSongs(filteredSongs);
@@ -156,7 +152,6 @@ function handleEditSongEvent(song, songItemElement) {
 
   editSongSection.getElementById("edit-song-id").value = song.id;
   editSongSection.getElementById("edit-title").value = song.title || "";
-  editSongSection.getElementById("edit-subtext").value = song.subtext || "";
   editSongSection.getElementById("edit-start-time").value =
     song.startTime || "";
   editSongSection.getElementById("edit-end-time").value = song.endTime || "";
@@ -173,15 +168,12 @@ function handleEditSongEvent(song, songItemElement) {
       const form = event.target;
       const startTime = form.querySelector("#edit-start-time").value;
       const endTime = form.querySelector("#edit-end-time").value;
-      const subtext = form.querySelector("#edit-subtext").value;
 
       song.startTime = startTime ? parseFloat(startTime) : null;
       song.endTime = endTime ? parseFloat(endTime) : null;
-      song.subtext = subtext;
 
       songItemElement.setAttribute("start-time", formatTime(song.startTime));
       songItemElement.setAttribute("end-time", formatTime(song.endTime));
-      songItemElement.setAttribute("subtext", song.subtext);
 
       chrome.storage.local
         .set({ [SAVED_SONGS_DB_KEY]: SAVED_SONGS })

@@ -2,64 +2,42 @@
 /** @typedef {import('./types').CurrentlyPlaying} CurrentlyPlaying */
 /** @typedef {import('./types').StorageData} StorageData */
 
-const MUSIC_PLAYER_NODE_SELECTOR = "ytmusic-player-bar";
-const SONG_ID_NODE_SELECTOR = "a.ytp-title-link";
-const SONG_DETAILS_PARENT_NODE = "div.middle-controls";
-const SONG_TITLE_NODE_SELECTOR = "yt-formatted-string.title";
-const SONG_SUBTEXT_NODE_SELECTOR = "span.subtitle yt-formatted-string";
-
 const SAVED_SONGS_DB_KEY = "songs";
+const DETECT_VIDEO_ELEMENT_TIMEOUT = 500; // ms
+const VIDEO_ELEMENT_OBSERVER_ATTRIBUTE = "src";
+const SONG_ID_NODE_SELECTOR = "a.ytp-title-link";
 
-/** @type {Map<string, {startTime: number, endTime: number|null}>} */
+/**
+ * TODO - We might want to start capturing more details about the song and
+ * storing additional information about it. To achieve that we would have to
+ * start observing the ytmusic-player-bar for changes, currently we only care
+ * about the song name and id, so observing the player-bar is not of use
+ * 
+ * const SONG_TITLE_NODE_SELECTOR =
+ *   "ytmusic-player-bar div.middle-controls yt-formatted-string.title";
+ * const SONG_SUBTEXT_NODE_SELECTOR =
+ *   "ytmusic-player-bar div.middle-controls span.subtitle yt-formatted-string";
+*/
+
+/** @type {Map<string, {startTime: number|null, endTime: number|null}>} */
 const SAVED_SONGS = new Map();
+
+// TODO - remove
+SAVED_SONGS.set('rOCe2i7fOCQ', {
+  startTime: 30,
+  endTime: 90
+})
 
 /** @type {CurrentlyPlaying} */
 const CURRENTLY_PLAYING = {
   id: null,
   title: null,
-  subtext: null,
 
   reset() {
     this.id = null;
     this.title = null;
-    this.subtext = null;
   },
 };
-
-/**
- * @param {HTMLElement} songDetailsNode - The song details HTML element
- * @param {HTMLAnchorElement} songLinkNode - The song link anchor element
- * @returns {boolean}
- */
-function updateCurrentlyPlaying(songDetailsNode, songLinkNode) {
-  const title = songDetailsNode
-    .querySelector(SONG_TITLE_NODE_SELECTOR)
-    ?.getAttribute("title");
-  const subtext = songDetailsNode
-    .querySelector(SONG_SUBTEXT_NODE_SELECTOR)
-    ?.getAttribute("title");
-
-  if (!title || !subtext) {
-    console.debug(
-      "[CURRENTLY PLAYING] unable to find either the song name or sub-text",
-      { title, subtext, song: CURRENTLY_PLAYING }
-    );
-    return false;
-  }
-
-  /**
-   * The url is of the following format and we only require the value of
-   * 'v' query param since it will act as the id of the song
-   * 'https://music.youtube.com/watch?list=RDAMVMBLNHOgy_HCI&v=BLNHOgy_HCI'
-   */
-  CURRENTLY_PLAYING.id = new URL(songLinkNode.href).searchParams.get("v");
-  CURRENTLY_PLAYING.title = title;
-  CURRENTLY_PLAYING.subtext = subtext;
-
-  console.log(CURRENTLY_PLAYING);
-
-  return true;
-}
 
 /**
  * @param {Event} event
@@ -79,124 +57,83 @@ function timeupdateHandler(event) {
 }
 
 /**
- * @param {MutationRecord[]} mutation
- * @param {MutationObserver} observer
- * @returns {void}
+ * Youtube music plays the songs in a video player, we recursively call this function
+ * to identify when the video element appears in the DOM. Once we know that the element
+ * is there, we detect for changes to the 'src' attribute of the video element. The
+ * changes to 'src' attribute signify change in  a song.
  */
-function setupSongDetailsObserver(mutation, observer) {
-  const record = mutation[0];
-  if (!record.target.href) {
+function detectVideoElement() {
+  const videoElement = document.querySelector("video");
+  if (!videoElement) {
+    setTimeout(detectVideoElement, DETECT_VIDEO_ELEMENT_TIMEOUT);
     return;
   }
 
-  const musicPlayer = document.querySelector(MUSIC_PLAYER_NODE_SELECTOR);
-  if (!musicPlayer) {
-    return;
-  }
+  const observer = new MutationObserver(
+    function videoElementSrcAttributeObserver(mutations, _observer) {
+      for (const mutation of mutations) {
+        if (
+          !(mutation.target instanceof HTMLVideoElement) ||
+          mutation.type !== "attributes" ||
+          mutation.attributeName !== VIDEO_ELEMENT_OBSERVER_ATTRIBUTE
+        )
+          continue;
 
-  /**
-   * Remove the timeupdate listener before processing the new song.
-   *
-   * This serves two purposes:
-   * 1. Prevents potential race conditions where timeupdate events fire with
-   *    stale song data during the song transition
-   * 2. Ensures we don't unnecessarily process timeupdate events for
-   *    non-tracked songs
-   *
-   * Note: Even though CURRENTLY_PLAYING.reset() below would prevent any
-   * issues with stale data, we still remove the listener since either
-   * way we only want the listener for songs that are being tracked
-   */
-  document
-    .querySelector("video")
-    .removeEventListener("timeupdate", timeupdateHandler);
+        const videoElement = mutation.target;
 
-  /**
-   * Reset current song data before the mutation observer updates it.
-   * This ensures we don't have stale data in CURRENTLY_PLAYING during
-   * the transition between songs.
-   */
-  CURRENTLY_PLAYING.reset();
+        /**
+         * Reset the listener and currently playing on change of the song,
+         * we only need if the song being played is stored in SAVED_SONGS
+         */
+        videoElement.removeEventListener("timeupdate", timeupdateHandler);
+        CURRENTLY_PLAYING.reset();
 
-  new MutationObserver(function updateCurrentlyPlayingObserver(
-    mutation,
-    observer
-  ) {
-    const songDetails = musicPlayer.querySelector(SONG_DETAILS_PARENT_NODE);
-    if (!songDetails) {
-      console.debug("[SONG OBSERVER] unable to find song details");
-      return;
-    }
+        /** @type {HTMLAnchorElement} Query for the node containing song's id */
+        const idNode = document.querySelector(SONG_ID_NODE_SELECTOR);
+        if (!idNode || !idNode.href) return;
 
-    const currentlyPlayingUpdated = updateCurrentlyPlaying(
-      songDetails,
-      record.target
-    );
+        /** update currently playing */
+        CURRENTLY_PLAYING.id = new URL(idNode).searchParams.get("v");
+        CURRENTLY_PLAYING.title = idNode.textContent;
 
-    if (!currentlyPlayingUpdated) {
-      return;
-    }
+        if (!SAVED_SONGS.has(CURRENTLY_PLAYING.id)) return;
 
-    observer.disconnect();
-    if (SAVED_SONGS.has(CURRENTLY_PLAYING.id)) {
-      document
-        .querySelector("video")
-        .addEventListener("timeupdate", timeupdateHandler);
-    }
-  }).observe(musicPlayer, {
-    childList: true,
-    subtree: true,
-  });
-}
-/**
- * @param {MutationRecord[]} mutation
- * @param {MutationObserver} observer
- * @returns {void}
- */
-function setupSongMutationObserver(mutation, observer) {
-  const node = document.querySelector(SONG_ID_NODE_SELECTOR);
-  if (!node || !node.href) return;
-
-  /**
-   * In case we found the node which contains the song id, we
-   * will add a separate observer on that node that will watch
-   * for changes on 'href' attribute and update the song details
-   * accordingly. Also the current 'observer' would be disconnected
-   *
-   * NOTE: song id is the 'v' query param we get from the link
-   * of 'href' attribute
-   */
-  new MutationObserver(setupSongDetailsObserver).observe(node, {
-    attributes: true,
-    attributeFilter: ["href"],
-  });
-  observer.disconnect();
-}
-
-function start() {
-  new MutationObserver(setupSongMutationObserver).observe(
-    document.querySelector("body"),
-    {
-      attributes: true,
-      childList: true,
-      subtree: true,
-    }
-  );
-
-  chrome.storage.local.get(SAVED_SONGS_DB_KEY).then(
-    /**
-     * @param {StorageData} data
-     */
-    function loadSavedSongs(data) {
-      console.log(data);
-      for (const song of data.songs) {
-        SAVED_SONGS.set(song.id, {
-          startTime: song.startTime,
-          endTime: song.endTime,
-        });
+        videoElement.addEventListener("timeupdate", timeupdateHandler);
       }
     }
   );
+
+  observer.observe(videoElement, {
+    attributes: true,
+    attributeFilter: [VIDEO_ELEMENT_OBSERVER_ATTRIBUTE],
+    childList: false,
+    subtree: false,
+  });
 }
 
-start();
+function main() {
+  chrome.storage.local
+    .get(SAVED_SONGS_DB_KEY)
+    .then(
+      /** @param {StorageData} data */
+      function loadSavedSongs(data) {
+        for (const song of data.songs ?? []) {
+          SAVED_SONGS.set(song.id, {
+            startTime: song.startTime,
+            endTime: song.endTime,
+          });
+        }
+      }
+    )
+    .catch(function unableToLoadSongs(err) {
+      console.error("Unable to load songs from storage");
+    });
+
+  detectVideoElement();
+}
+
+try {
+  main();
+} catch (err) {
+  console.error("Something went wrong", err);
+}

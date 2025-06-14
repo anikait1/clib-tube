@@ -9,7 +9,6 @@ declare interface Song {
 declare interface CurrentlyPlaying {
   id: string | null;
   title: string | null;
-  subtext: string | null;
   reset: () => void;
 }
 
