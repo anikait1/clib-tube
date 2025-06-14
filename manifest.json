@@ -1,6 +1,6 @@
 {
   "name": "Clip Tube",
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs"],
   "description": "Listen to the part you enjoy",
   "version": "1.0",
   "manifest_version": 3,

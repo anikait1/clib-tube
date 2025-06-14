@@ -2,6 +2,7 @@
 /** @typedef {import('../types').CurrentlyPlaying} CurrentlyPlaying */
 /** @typedef {import('../types').StorageData} StorageData */
 
+
 const SAVED_SONGS_DB_KEY = "songs";
 const SONGS_CONTAINER_NODE_IDENTIFIER = "songs-container";
 const EDIT_FORM_TEMPLATE_NODE_IDENTIFIER = "edit-form-template";
@@ -118,14 +119,61 @@ function setupEventListeners() {
 
   document
     .getElementById("search-input")
-    .addEventListener("input", function filterSongs() {
-      const searchTerm = searchInput.value.toLowerCase();
+    .addEventListener("input", function filterSongs(event) {
+      const searchTerm = event.target.value.toLowerCase();
       const filteredSongs = SAVED_SONGS.filter((song) => {
-        return (
-          song.title?.toLowerCase().includes(searchTerm)
-        );
+        return song.title?.toLowerCase().includes(searchTerm);
       });
       renderSongs(filteredSongs);
+    });
+
+  document
+    .getElementById("add-current-song")
+    .addEventListener("click", async () => {
+      try {
+        const [tab] = await chrome.tabs.query({
+          url: 'https://*.youtube.com/*',
+        });
+
+        if (!tab) return;
+
+        // TODO - understand how constants can be shared between content-script and popup.js
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          type: 'add-current-song',
+        });
+
+
+        if (!response) {
+          document.getElementById("error-message").textContent =
+            "Something went wrong. Please try again.";
+          return;
+        }
+
+        if (!response.success) {
+          document.getElementById("error-message").textContent =
+            response.error;
+          return;
+        }
+
+
+        /**
+         * Popup only receives a successful response in case the content script was successful
+         * in saving the song to the DB, so we can safely add the song to the SAVED_SONGS array.
+         * Next time the popup is loaded, the SAVED_SONGS array will be populated with the
+         * songs saved in the DB.
+         */
+        SAVED_SONGS.push({
+          ...response.data,
+          startTime: null,
+          endTime: null,
+        });
+
+        renderSongs();
+      } catch (error) {
+        console.error("Error adding song:", error);
+        document.getElementById("error-message").textContent =
+          "Failed to add song. Please try again.";
+      }
     });
 }
 

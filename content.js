@@ -2,6 +2,7 @@
 /** @typedef {import('./types').CurrentlyPlaying} CurrentlyPlaying */
 /** @typedef {import('./types').StorageData} StorageData */
 
+
 const SAVED_SONGS_DB_KEY = "songs";
 const DETECT_VIDEO_ELEMENT_TIMEOUT = 500; // ms
 const VIDEO_ELEMENT_OBSERVER_ATTRIBUTE = "src";
@@ -12,21 +13,15 @@ const SONG_ID_NODE_SELECTOR = "a.ytp-title-link";
  * storing additional information about it. To achieve that we would have to
  * start observing the ytmusic-player-bar for changes, currently we only care
  * about the song name and id, so observing the player-bar is not of use
- * 
+ *
  * const SONG_TITLE_NODE_SELECTOR =
  *   "ytmusic-player-bar div.middle-controls yt-formatted-string.title";
  * const SONG_SUBTEXT_NODE_SELECTOR =
  *   "ytmusic-player-bar div.middle-controls span.subtitle yt-formatted-string";
-*/
+ */
 
-/** @type {Map<string, {startTime: number|null, endTime: number|null}>} */
+/** @type {Map<string, {startTime: number|null, endTime: number|null, title: string}>} */
 const SAVED_SONGS = new Map();
-
-// TODO - remove
-SAVED_SONGS.set('rOCe2i7fOCQ', {
-  startTime: 30,
-  endTime: 90
-})
 
 /** @type {CurrentlyPlaying} */
 const CURRENTLY_PLAYING = {
@@ -37,6 +32,13 @@ const CURRENTLY_PLAYING = {
     this.id = null;
     this.title = null;
   },
+
+  data() {
+    return {
+      id: this.id,
+      title: this.title,
+    };
+  }
 };
 
 /**
@@ -121,13 +123,82 @@ function main() {
           SAVED_SONGS.set(song.id, {
             startTime: song.startTime,
             endTime: song.endTime,
+            title: song.title,
           });
         }
       }
     )
     .catch(function unableToLoadSongs(err) {
-      console.error("Unable to load songs from storage");
+      console.error("Unable to load songs from storage", err);
     });
+
+  /**
+   * Web extension's popup doesn't have access to the DOM of the page. In order to communicate
+   * with the extension, we need to use message passing. We listen for messages from the popup
+   * and respond accordingly.
+   * ref: https://developer.chrome.com/docs/extensions/develop/concepts/messaging
+   */
+  chrome.runtime.onMessage.addListener(function extensionEventListener(
+    request,
+    sender,
+    sendResponse
+  ) {
+    const requestType = request.type;
+
+    let response;
+    switch (requestType) {
+      case 'add-current-song': {
+        if (!CURRENTLY_PLAYING.id) {
+          response = {
+            success: false,
+            error: "No song is currently playing",
+          };
+          break;
+        }
+
+        if (SAVED_SONGS.has(CURRENTLY_PLAYING.id)) {
+          response = {
+            success: false,
+            error: "This song is already saved",
+          };
+          break;
+        }
+
+
+        try {
+          SAVED_SONGS.set(CURRENTLY_PLAYING.id, {
+            startTime: null,
+            endTime: null,
+            title: CURRENTLY_PLAYING.title,
+          });
+
+          response = {
+            success: true,
+            data: CURRENTLY_PLAYING.data(),
+          };
+        } catch (error) {
+          console.error("Error saving songs:", error);
+          response = {
+            success: false,
+            error: "Failed to save songs. Please try again.",
+          };
+        }
+
+        break;
+      }
+      default: {
+        console.log(`Unknown event type: ${requestType}`);
+      }
+    }
+
+    chrome.storage.local.set({
+      [SAVED_SONGS_DB_KEY]: Array.from(SAVED_SONGS.entries()).map(([id, data]) => ({
+        id,
+        ...data,
+      })),
+    }).then(() => sendResponse(response));
+    return true;
+  });
 
   detectVideoElement();
 }
