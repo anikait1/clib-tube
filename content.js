@@ -132,7 +132,7 @@ function main() {
     });
 
   /**
-   * Web extension's popup doesn't have access to the DOM of the page. In order to communicate
+   * Web extension's popup doesn't have access to the DOM. In order to communicate
    * with the extension, we need to use message passing. We listen for messages from the popup
    * and respond accordingly.
    * ref: https://developer.chrome.com/docs/extensions/develop/concepts/messaging
@@ -146,42 +146,16 @@ function main() {
 
     let response;
     switch (requestType) {
-      case "add-current-song": {
-        if (!CURRENTLY_PLAYING.id) {
-          response = {
-            success: false,
-            error: "No song is currently playing",
-          };
-          break;
-        }
-
-        if (SAVED_SONGS.has(CURRENTLY_PLAYING.id)) {
-          response = {
-            success: false,
-            error: "This song is already saved",
-          };
-          break;
-        }
-
-        try {
-          SAVED_SONGS.set(CURRENTLY_PLAYING.id, {
-            startTime: null,
-            endTime: null,
-            title: CURRENTLY_PLAYING.title,
-          });
-
-          response = {
-            success: true,
-            data: CURRENTLY_PLAYING.data(),
-          };
-        } catch (error) {
-          console.error("Error saving songs:", error);
-          response = {
-            success: false,
-            error: "Failed to save songs. Please try again.",
-          };
-        }
-
+      case "currently-playing": {
+        response = !CURRENTLY_PLAYING.id
+          ? {
+              success: false,
+              error: "No song is currently playing",
+            }
+          : {
+              success: true,
+              data: CURRENTLY_PLAYING.data(),
+            };
         break;
       }
       default: {
@@ -189,17 +163,37 @@ function main() {
       }
     }
 
-    chrome.storage.local
-      .set({
-        [SAVED_SONGS_DB_KEY]: Array.from(SAVED_SONGS.entries()).map(
-          ([id, data]) => ({
-            id,
-            ...data,
-          })
-        ),
-      })
-      .then(() => sendResponse(response));
-    return true;
+    /**
+     * Message passing has some caveats in regards to responding to
+     * events. In this case we're responding syncrhonously the
+     * API expects us to return false so that it can close the conneciton,
+     * if some asyncrhonous operation needs to be done here, remember to
+     * return true so the connection can be kept open until sendResponse is
+     * called. Refer the above attached chrome docs for more information
+     */
+    sendResponse(response);
+    return false;
+  });
+
+  /**
+   * Events in case storage space is modified
+   * ref: https://developer.chrome.com/docs/extensions/reference/api/storage#event-onChanged
+   */
+  chrome.storage.local.onChanged.addListener(function handleStorageChanges(
+    changes,
+    _areaName
+  ) {
+    const { songs } = changes;
+    if (!songs?.newValue) return;
+
+    for (const song of songs.newValue) {
+      SAVED_SONGS.set(song.id, {
+        startTime: song.startTime,
+        endTime: song.endTime,
+        title: song.title,
+      });
+    }
+
   });
 
   detectVideoElement();

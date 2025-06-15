@@ -131,14 +131,19 @@ function setupEventListeners() {
     .addEventListener("click", async () => {
       try {
         const [tab] = await chrome.tabs.query({
-          url: "https://*.youtube.com/*",
+          url: "https://music.youtube.com/*",
         });
 
-        if (!tab) return;
+        console.log(tab)
+
+        if (!tab) {
+          document.getElementById("error-message").textContent = "Youtube music is not running"
+          return
+        };
 
         // TODO - understand how constants can be shared between content-script and popup.js
         const response = await chrome.tabs.sendMessage(tab.id, {
-          type: "add-current-song",
+          type: "currently-playing",
         });
 
         if (!response) {
