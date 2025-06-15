@@ -1,13 +1,13 @@
 {
   "name": "clib-tube",
   "version": "1.0.0",
-  "description": "",
-  "main": "content.js",
+  "description": "Clip youtube music songs and listen to the part you enjoy",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",

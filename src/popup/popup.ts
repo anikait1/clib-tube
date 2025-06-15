@@ -170,16 +170,16 @@ function setupEventListeners() {
         return;
       }
 
-      /**
-       * Popup only receives a successful response in case the content script was successful
-       * in saving the song to the DB, so we can safely add the song to the SAVED_SONGS array.
-       * Next time the popup is loaded, the SAVED_SONGS array will be populated with the
-       * songs saved in the DB.
-       */
       SAVED_SONGS.push({
         ...response.data,
         startTime: null,
         endTime: null,
+      });
+
+      chrome.storage.local
+      .set({ [SAVED_SONGS_DB_KEY]: SAVED_SONGS })
+      .catch((error: unknown) => {
+        console.error("Error saving songs:", error);
       });
 
       renderSongs();
@@ -239,9 +239,6 @@ function handleEditSongEvent(song: Song, songItemElement: Element) {
 
     chrome.storage.local
       .set({ [SAVED_SONGS_DB_KEY]: SAVED_SONGS })
-      .then(() => {
-        console.log("songs saved in storage");
-      })
       .catch((error: unknown) => {
         console.error("Error saving songs:", error);
       });
@@ -271,9 +268,6 @@ function handleDeleteSong(deletedSong: Song) {
 
   chrome.storage.local
     .set({ [SAVED_SONGS_DB_KEY]: SAVED_SONGS })
-    .then(() => {
-      console.log("songs saved in storage");
-    })
     .catch((error: unknown) => {
       console.error("Error saving songs:", error);
     });
