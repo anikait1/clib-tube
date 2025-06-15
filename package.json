@@ -1,0 +1,20 @@
+{
+  "name": "clib-tube",
+  "version": "1.0.0",
+  "description": "",
+  "main": "content.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.0.0",
+    "@types/chrome": "^0.0.326",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}
